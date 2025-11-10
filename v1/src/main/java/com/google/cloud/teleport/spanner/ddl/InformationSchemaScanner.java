@@ -85,9 +85,15 @@ public class InformationSchemaScanner {
     listSchemas(builder);
     listTables(builder);
     listViews(builder);
+<<<<<<< HEAD
     if (isUdfSupported()) {
       listUdfs(builder);
       listUdfParameters(builder);
+=======
+    if (isFunctionSupported()) {
+      listFunctions(builder);
+      listFunctionParameters(builder);
+>>>>>>> main
     }
     listColumns(builder);
     listColumnOptions(builder);
@@ -1014,6 +1020,7 @@ public class InformationSchemaScanner {
     }
   }
 
+<<<<<<< HEAD
   private void listUdfs(Ddl.Builder builder) {
     Statement queryStatement = listUdfsSQL();
 
@@ -1043,6 +1050,12 @@ public class InformationSchemaScanner {
   @VisibleForTesting
   Statement listUdfsSQL() {
     Statement queryStatement;
+=======
+  private void listFunctions(Ddl.Builder builder) {
+    Statement queryStatement;
+    Statement preconditionStatement;
+
+>>>>>>> main
     switch (dialect) {
       case GOOGLE_STANDARD_SQL:
         queryStatement =
@@ -1054,15 +1067,59 @@ public class InformationSchemaScanner {
                     + " ('INFORMATION_SCHEMA', 'SPANNER_SYS')"
                     + " AND r.routine_type = 'FUNCTION'"
                     + " AND r.routine_body = 'SQL'");
+<<<<<<< HEAD
+=======
+        preconditionStatement =
+            Statement.of(
+                "SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS c"
+                    + " WHERE c.TABLE_SCHEMA = 'INFORMATION_SCHEMA' AND c.TABLE_NAME = 'PARAMETERS'"
+                    + " AND c.COLUMN_NAME = 'PARAMETER_DEFAULT'");
+>>>>>>> main
         break;
       default:
         throw new IllegalArgumentException(
             "User-defined functions are not supported in dialect: " + dialect);
     }
+<<<<<<< HEAD
     return queryStatement;
   }
 
   private void listUdfParameters(Ddl.Builder builder) {
+=======
+    try (ResultSet resultSet = context.executeQuery(preconditionStatement)) {
+      // Returns a single row with a 1 if the information schema can export all function properties
+      // and a 0 if not.
+      resultSet.next();
+      if (resultSet.getLong(0) == 0) {
+        LOG.info(
+            "INFORMATION_SCHEMA.PARAMETERS.PARAMETER_DEFAULT is not present. Cannot export"
+                + " user-defined functions.");
+        return;
+      }
+    }
+
+    ResultSet resultSet = context.executeQuery(queryStatement);
+
+    while (resultSet.next()) {
+      String functionName = getQualifiedName(resultSet.getString(0), resultSet.getString(1));
+      String functionSpecificName =
+          getQualifiedName(resultSet.getString(2), resultSet.getString(3));
+      String functionType = resultSet.getString(4);
+      String functionDefinition = resultSet.getString(5);
+      String functionSecurityType = resultSet.getString(6);
+      LOG.debug("Schema user-defined function {}", functionName);
+      builder
+          .createUdf(functionSpecificName)
+          .name(functionName)
+          .type(functionType)
+          .definition(functionDefinition)
+          .security(Udf.SqlSecurity.valueOf(functionSecurityType))
+          .endUdf();
+    }
+  }
+
+  private void listFunctionParameters(Ddl.Builder builder) {
+>>>>>>> main
     Statement statement = listFunctionParametersSQL();
 
     ResultSet resultSet = context.executeQuery(statement);
@@ -1095,16 +1152,23 @@ public class InformationSchemaScanner {
       case GOOGLE_STANDARD_SQL:
         return Statement.of(
             "SELECT p.specific_schema, p.specific_name, p.parameter_name, p.data_type,"
+<<<<<<< HEAD
                 + " p.parameter_default  FROM information_schema.parameters AS p, information_schema.routines AS r"
                 + " WHERE p.specific_schema NOT IN ('INFORMATION_SCHEMA', 'SPANNER_SYS') and p.specific_name ="
                 + " r.specific_name and r.routine_type = 'FUNCTION' and r.routine_body = 'SQL' ORDER BY p.specific_schema,"
                 + " p.specific_name, p.ordinal_position");
+=======
+                + " p.parameter_default  FROM information_schema.parameters AS p WHERE"
+                + " p.specific_schema NOT IN ('INFORMATION_SCHEMA', 'SPANNER_SYS') ORDER BY"
+                + " p.specific_schema, p.specific_name, p.ordinal_position");
+>>>>>>> main
       default:
         throw new IllegalArgumentException("Unrecognized dialect: " + dialect);
     }
   }
 
   // TODO: b/398890992 - Add support for UDFs in POSTGRESQL.
+<<<<<<< HEAD
   private boolean isUdfSupported() {
     Statement preconditionStatement;
     switch (dialect) {
@@ -1130,6 +1194,10 @@ public class InformationSchemaScanner {
       }
     }
     return true;
+=======
+  private boolean isFunctionSupported() {
+    return dialect == Dialect.GOOGLE_STANDARD_SQL;
+>>>>>>> main
   }
 
   // TODO: Remove after models are supported in POSTGRESQL.

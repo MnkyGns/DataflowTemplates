@@ -48,6 +48,7 @@ public abstract class UdfParameter implements Serializable {
     return builder(Dialect.GOOGLE_STANDARD_SQL);
   }
 
+<<<<<<< HEAD
   public static UdfParameter parse(String parameter, String functionSpecificName, Dialect dialect) {
     String[] paramParts = parameter.split(" ");
     if (paramParts.length < 2) {
@@ -83,6 +84,8 @@ public abstract class UdfParameter implements Serializable {
     return udfParameter.autoBuild();
   }
 
+=======
+>>>>>>> main
   public void prettyPrint(Appendable appendable) throws IOException {
     appendable.append(quoteIdentifier(name(), dialect()));
     appendable.append(" ");
